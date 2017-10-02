@@ -1,0 +1,131 @@
+<!-- /**
+ * CSE205 Assessment 1 
+ * @author Yudi An
+ * 1201562
+ * Y3-ICS
+ * Client Website
+ */ -->
+
+<!DOCTYPE html>
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+    <title>We! Chat</title>
+    <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/css/bootstrap-combined.min.css" rel="stylesheet">
+    <style>
+        .unstyled li {
+            line-height: 35px;
+        }
+        .badge {
+            font-size:14px;
+            line-height: 26px;
+        }
+        .unstyled sub {
+            font-size:14px;
+            color: #999999;
+        }
+    </style>
+    <script src="./We! Chat_files/jquery.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1 class="page-header">We! Chat</h1>
+
+        <form action="" class="form-inline" id="connectForm">
+            <div class="input-append">
+                <input type="text" class="input-large" value="ws://192.168.1.33:8088/echo" id="wsServer" disabled="disabled">
+                <button class="btn" type="submit" id="connect" disabled="disabled">Connect</button>
+                <button class="btn" id="disconnect">Disconnect</button>
+            </div>
+        </form>
+        <form action="" id="sendForm">
+            <div class="input-append">
+                <input class="input-large" type="text" placeholder="message" id="message">
+                <button class="btn btn-primary" type="submit" id="send">You</button>
+            </div>
+        </form>
+        <hr>
+        <ul class="unstyled" id="log"><li><span class="badge badge-success">websocket opened</span></li><li><sub><b> 2 clients in this chat room. You can talk to them</b></sub></li><li><span class="badge">hi</span><sub> sent 15:47</sub></li><li><span class="badge badge-info"> said "hi"</span><sub> Visitor 1 16:21</sub></li></ul>
+    </div>
+    <script type="text/javascript">
+        $(document).ready(function() {
+            var ws;
+
+            if ( typeof String.prototype.startsWith != 'function' ) {
+              String.prototype.startsWith = function( str ) {
+                return this.substring( 0, str.length ) === str;
+              }
+            };
+
+            $('#connectForm').on('submit', function() {
+                document.getElementById('log').innerHTML = "";
+                if ("WebSocket" in window) {
+                    ws = new WebSocket($('#wsServer').val());
+                    ws.onopen = function() {
+                        $('#log').append('<li><span class="badge badge-success">websocket opened</span></li>');
+                        $('#wsServer').attr('disabled', 'disabled');
+                        $('#connect').attr('disabled', 'disabled');
+                        $('#disconnect').removeAttr('disabled');
+                        $('#message').removeAttr('disabled').focus();
+                        $('#send').removeAttr('disabled');
+                    };
+
+                    ws.onerror = function() {
+                        $('#log').append('<li><span class="badge badge-important">websocket error</span></li>');
+                    };
+
+                    ws.onmessage = function(event) {
+                        // $('#log').append('<li>recieved: <span class="badge">' + event.data + '</span></li>');
+                        var str = event.data;
+                        var message = str.substring(2);
+
+                        if(str.startsWith("c\@")) {
+                            var components = message.split('|');
+                            var userName = components.shift();
+                            if(userName.startsWith("Visitor 1")){
+                                userName = "Father";
+                            } else if (userName.startsWith("Visitor 2")){
+                                userName = "Mother";
+                            } else if (userName.startsWith("Visitor 3")){
+                                userName = "Child";
+                            }
+                            var sendTime = components.shift();
+                            message = components.join('|');
+                            var date = new Date(parseInt(sendTime)*1000);
+                            $('#log').append('<li><span class="badge badge-info">' + message + '</span><sub> ' + userName + ' ' + date.getHours() + ':' + ((date.getMinutes()>9)?'':'0') + date.getMinutes() + '</sub></li>');
+                        } else {
+                            $('#log').append('<li><sub><b>' + message + '</b></sub></li>');
+                        }
+                    };
+
+                    ws.onclose = function() {
+                        $('#log').append('<li><span class="badge badge-important">websocket closed</span></li>');
+                        $('#wsServer').removeAttr('disabled');
+                        $('#connect').removeAttr('disabled');
+                        $('#disconnect').attr('disabled', 'disabled');
+                        $('#message').attr('disabled', 'disabled');
+                        $('#send').attr('disabled', 'disabled');
+                    };
+                } else {
+                    $('#log').append('<li><span class="badge badge-important">WebSocket NOT supported in this browser</span></li>');
+                }
+
+                return false;
+            });
+            $('#sendForm').on('submit', function() {
+                var message = $('#message').val();
+                if(message) {
+                    $('#message').val('');
+                    ws.send(message);
+                    var date = new Date();
+                    $('#log').append('<li><span class="badge">' + message + '</span><sub> sent ' + date.getHours() + ':' + ((date.getMinutes()>9)?'':'0') + date.getMinutes() + '</sub></li>');
+                }      
+
+                return false;
+            });
+            $('#disconnect').on('click', function() {
+                ws.close();
+                return false;
+            });
+        });
+    </script>
+
+</body></html>
